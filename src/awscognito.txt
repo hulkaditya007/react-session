@@ -1,0 +1,127 @@
+Here's a full example of how to connect AWS Cognito with a React project for access token management and session creation using AWS Amplify.
+
+1. Setting Up Your React Project
+If you haven't already, create a new React project:
+
+bash
+Copy code
+npx create-react-app my-cognito-app
+cd my-cognito-app
+2. Install AWS Amplify
+Install the necessary AWS Amplify packages:
+
+bash
+Copy code
+npm install aws-amplify @aws-amplify/ui-react
+3. Configure AWS Amplify
+Create a file called aws-exports.js in the src directory to store your AWS configuration. You'll need to fill this in with your Cognito User Pool details.
+
+Here’s a simplified structure of what the aws-exports.js file might look like:
+
+javascript
+Copy code
+const awsconfig = {
+    aws_cognito_region: 'us-west-2',  // Replace with your AWS region
+    aws_user_pools_id: 'us-west-2_AbCdEfGhI',  // Replace with your User Pool ID
+    aws_user_pools_web_client_id: 'xyz123abc456def789ghi',  // Replace with your App Client ID
+    oauth: {
+        domain: 'your-cognito-domain.auth.us-west-2.amazoncognito.com',
+        scope: ['openid', 'profile', 'email'],
+        redirectSignIn: 'http://localhost:3000/',
+        redirectSignOut: 'http://localhost:3000/',
+        responseType: 'code',
+    }
+};
+
+export default awsconfig;
+4. Set Up Amplify in index.js
+In your src/index.js, configure Amplify with your aws-exports.js settings:
+
+javascript
+Copy code
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Amplify from 'aws-amplify';
+import awsconfig from './aws-exports';
+import App from './App';
+
+Amplify.configure(awsconfig);
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+5. Creating the Main App Component
+Now, create the src/App.js file, which will include the authentication logic and display the authenticated user interface:
+
+javascript
+Copy code
+import React from 'react';
+import { AmplifySignOut, withAuthenticator } from '@aws-amplify/ui-react';
+import { Auth } from 'aws-amplify';
+
+function App() {
+
+  const getCurrentSession = async () => {
+    try {
+      const session = await Auth.currentSession();
+      console.log('Access Token:', session.getAccessToken().getJwtToken());
+      console.log('ID Token:', session.getIdToken().getJwtToken());
+      console.log('Refresh Token:', session.getRefreshToken().getToken());
+    } catch (error) {
+      console.log('Error getting session:', error);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      const user = await Auth.currentAuthenticatedUser();
+      const currentSession = await Auth.currentSession();
+      const refreshedSession = await Auth.refreshSession(currentSession.getRefreshToken());
+      console.log('New Access Token:', refreshedSession.getAccessToken().getJwtToken());
+    } catch (error) {
+      console.log('Error refreshing session:', error);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await Auth.signOut();
+    } catch (error) {
+      console.log('Error signing out:', error);
+    }
+  };
+
+  return (
+    <div>
+      <h1>Welcome to My App</h1>
+      <button onClick={getCurrentSession}>Get Current Session</button>
+      <button onClick={refreshSession}>Refresh Session</button>
+      <button onClick={signOut}>Sign Out</button>
+      <AmplifySignOut />
+    </div>
+  );
+}
+
+export default withAuthenticator(App);
+6. Explanation
+AmplifySignOut Component: This provides a button to sign out the user. It's part of the @aws-amplify/ui-react package.
+withAuthenticator(App): This higher-order component wraps your App component with built-in authentication, automatically handling sign-in, sign-up, and MFA.
+Session Management Functions:
+getCurrentSession(): Retrieves the current session and logs the access, ID, and refresh tokens to the console.
+refreshSession(): Manually refreshes the session using the refresh token.
+signOut(): Signs the user out and clears the session.
+7. Run Your Application
+To start your React application, run:
+
+bash
+Copy code
+npm start
+Your application should open in the browser, displaying the login interface. After successful login, you’ll see buttons to manage the session, and the tokens will be logged to the console.
+
+8. Testing
+Make sure your redirect URIs in AWS Cognito's App Client settings match your development environment (http://localhost:3000/ for local testing).
+
+This full code setup integrates AWS Cognito with your React app, handling authentication, access token management, and session creation seamlessly.
